@@ -115,10 +115,10 @@ def format_size(bytes):
 
 
 #  下载视频
-def down_video(video_list, title, start_url, page):
+def down_video(video_list, title, start_url, page, download_path):
     num = 1
     print('[正在下载P{}段视频,请稍等...]:'.format(page) + title)
-    currentVideoPath = os.path.join(sys.path[0], 'bilibili_video', title)  # 当前目录作为下载目录
+    currentVideoPath = os.path.join(download_path, title)  # 当前目录作为下载目录
     for i in video_list:
         opener = urllib.request.build_opener()
         # 请求头
@@ -145,8 +145,7 @@ def down_video(video_list, title, start_url, page):
         num += 1
 
 # 合并视频(20190802新版)
-def combine_video(title_list):
-    video_path = os.path.join(sys.path[0], 'bilibili_video')  # 下载目录
+def combine_video(title_list, video_path):
     for title in title_list:
         current_video_path = os.path.join(video_path ,title)
         if len(os.listdir(current_video_path)) >= 2:
@@ -202,10 +201,12 @@ def do_prepare(inputStart,inputQuality):
     }
     html = requests.get(start_url, headers=headers).json()
     data = html['data']
+    download_path = os.path.join(sys.path[0], 'bilibili_video', re.sub(r'[\\/:*?"<>|\r\n]+', "_", data['title']))
+    print('[视频文件保存位置]:' + download_path)
     cid_list = []
     if '?p=' in start:
         # 单独下载分P视频中的一集
-        p = re.search(r'\?p=(\d+)',start).group(1)
+        p = re.search(r'\?p=(\d+)', start).group(1)
         cid_list.append(data['pages'][int(p) - 1])
     else:
         # 如果p不存在就是全集下载
@@ -227,7 +228,7 @@ def do_prepare(inputStart,inputQuality):
         start_time = time.time()
         # down_video(video_list, title, start_url, page)
         # 定义线程
-        th = threading.Thread(target=down_video, args=(video_list, title, start_url, page))
+        th = threading.Thread(target=down_video, args=(video_list, title, start_url, page, download_path))
         # 将线程加入线程池
         threadpool.append(th)
 
@@ -239,15 +240,14 @@ def do_prepare(inputStart,inputQuality):
         th.join()
     
     # 最后合并视频
-    combine_video(title_list)
+    combine_video(title_list, download_path)
 
     end_time = time.time()  # 结束时间
     print('下载总耗时%.2f秒,约%.2f分钟' % (end_time - start_time, int(end_time - start_time) / 60))
 
     # 如果是windows系统，下载完成后打开下载目录
-    currentVideoPath = os.path.join(sys.path[0], 'bilibili_video')  # 当前目录作为下载目录
     if (sys.platform.startswith('win')):
-        os.startfile(currentVideoPath)
+        os.startfile(download_path)
 
 
 
