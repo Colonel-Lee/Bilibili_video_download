@@ -12,12 +12,15 @@ __author__ = 'Henry'
 20190711 - 增加GUI版本,可视化界面,操作更加友好
 '''
 
-import requests, time, hashlib, urllib.request, re, json
+import hashlib
 import imageio
+import requests
+import time
+import urllib.request
+
 imageio.plugins.ffmpeg.download()
 from moviepy.editor import *
-import os, sys, threading
-
+import os, threading
 
 
 from tkinter import *
@@ -117,7 +120,7 @@ def format_size(bytes):
 #  下载视频
 def down_video(video_list, title, start_url, page, download_path):
     num = 1
-    print('[正在下载P{}段视频,请稍等...]:'.format(page) + title)
+    print('[正在下载P{}段视频,请稍等...]:{}'.format(page, title))
     currentVideoPath = os.path.join(download_path, title)  # 当前目录作为下载目录
     for i in video_list:
         opener = urllib.request.build_opener()
@@ -138,12 +141,25 @@ def down_video(video_list, title, start_url, page, download_path):
         if not os.path.exists(currentVideoPath):
             os.makedirs(currentVideoPath)
         # 开始下载
-        if len(video_list) > 1:
-            urllib.request.urlretrieve(url=i, filename=os.path.join(currentVideoPath, r'{}-{}.flv'.format(title, num)),reporthook=Schedule_cmd)  # 写成mp4也行  title + '-' + num + '.flv'
-        else:
-            urllib.request.urlretrieve(url=i, filename=os.path.join(currentVideoPath, r'{}.flv'.format(title)),reporthook=Schedule_cmd)  # 写成mp4也行  title + '-' + num + '.flv'
+        filename = os.path.join(currentVideoPath, r'{}-{}.flv'.format(title, num) if len(video_list) > 1 else r'{}.flv'.format(title)) # 写成mp4也行  title + '-' + num + '.flv'
+        result = download_file(i, filename)
+        if result is not None:
+            error_msg = '[P{}段视频下载失败]:error={}, url={}, filename={}'.format(page, result, i, filename)
+            print(error_msg)
+            raise Exception(error_msg)
         num += 1
-    print('[P{}段视频下载完成]:'.format(page) + title)
+    print('[P{}段视频下载完成]:{}'.format(page, title))
+
+
+def download_file(url, filename, retry_times=5):
+    try:
+        urllib.request.urlretrieve(url=url, filename=filename, reporthook=Schedule_cmd)
+    except Exception as e:
+        if retry_times > 0:
+            download_file(url, filename, retry_times=retry_times - 1)
+        else:
+            return e
+
 
 # 合并视频(20190802新版)
 def combine_video(title_list, video_path):
