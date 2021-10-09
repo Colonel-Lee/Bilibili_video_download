@@ -143,6 +143,7 @@ def down_video(video_list, title, start_url, page, download_path):
         else:
             urllib.request.urlretrieve(url=i, filename=os.path.join(currentVideoPath, r'{}.flv'.format(title)),reporthook=Schedule_cmd)  # 写成mp4也行  title + '-' + num + '.flv'
         num += 1
+    print('[P{}段视频下载完成]:'.format(page) + title)
 
 # 合并视频(20190802新版)
 def combine_video(title_list, video_path):
