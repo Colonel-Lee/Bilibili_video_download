@@ -241,8 +241,8 @@ def do_prepare(inputStart,inputQuality):
         cid = str(item['cid'])
         title = item['part']
         title = re.sub(r'[\/\\:*?"<>|]', '', title)  # 替换为空的
-        print('[下载视频的cid]:' + cid)
-        print('[下载视频的标题]:' + title)
+        # print('[下载视频的cid]:' + cid)
+        # print('[下载视频的标题]:' + title)
         title_list.append(title)
         page = str(item['page'])
         start_url = start_url + "/?p=" + page
