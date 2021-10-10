@@ -31,9 +31,17 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 root=Tk()
 start_time = time.time()
 
+
 # 将输出重定向到表格
-def print(theText):
-    msgbox.insert(END,theText+'\n')
+def print_to_msg_box(msg):
+    msg_box.insert(END, msg + '\n')
+
+
+def print_label_to_msg_box(msg):
+    label = Label(msg_box, text=msg)
+    msg_box.window_create(END, window=label)
+    print_to_msg_box('')
+    return label
 
 
 # 访问API地址
@@ -81,32 +89,13 @@ def Schedule_cmd(blocknum, blocksize, totalsize):
     pct.set(percent_str)
 
 
-
-def Schedule(blocknum, blocksize, totalsize):
-    speed = (blocknum * blocksize) / (time.time() - start_time)
-    # speed_str = " Speed: %.2f" % speed
-    speed_str = " Speed: %s" % format_size(speed)
-    recv_size = blocknum * blocksize
-
-    # 设置下载进度条
-    f = sys.stdout
-    pervent = recv_size / totalsize
-    percent_str = "%.2f%%" % (pervent * 100)
-    n = round(pervent * 50)
-    s = ('#' * n).ljust(50, '-')
-    print(percent_str.ljust(6, ' ') + '-' + speed_str)
-    f.flush()
-    time.sleep(2)
-    # print('\r')
-
-
 # 字节bytes转化K\M\G
 def format_size(bytes):
     try:
         bytes = float(bytes)
         kb = bytes / 1024
     except:
-        print("传入的字节格式不对")
+        print_to_msg_box("传入的字节格式不对")
         return "Error"
     if kb >= 1024:
         M = kb / 1024
@@ -122,7 +111,7 @@ def format_size(bytes):
 #  下载视频
 def down_video(video_list, title, start_url, page, download_path):
     num = 1
-    print('[正在下载P{}段视频,请稍等...]:{}'.format(page, title))
+    msg_label = print_label_to_msg_box('[正在下载P{}段视频,请稍等...]:{}'.format(page, title))
     currentVideoPath = os.path.join(download_path, title)  # 当前目录作为下载目录
     download_failed = False
     for i in video_list:
@@ -148,11 +137,11 @@ def down_video(video_list, title, start_url, page, download_path):
         result = download_file(i, filename)
         if result is not None:
             error_msg = '[P{}段视频下载失败]:error={}, url={}, filename={}'.format(page, result, i, filename)
-            print(error_msg)
+            msg_label.configure(text=error_msg, fg='red')
             download_failed = True
         num += 1
     if not download_failed:
-        print('[P{}段视频下载完成]:{}'.format(page, title))
+        msg_label.configure(text='[P{}段视频下载完成]:{}'.format(page, title), fg='green')
 
 
 def download_file(url, filename, retry_times=5):
@@ -171,7 +160,7 @@ def combine_video(title_list, video_path):
         current_video_path = os.path.join(video_path ,title)
         if len(os.listdir(current_video_path)) >= 2:
             # 视频大于一段才要合并
-            print('[下载完成,正在合并视频...]:' + title)
+            print_to_msg_box('[下载完成,正在合并视频...]:' + title)
             # 定义一个数组
             L = []
             # 遍历所有文件
@@ -188,10 +177,10 @@ def combine_video(title_list, video_path):
             final_clip = concatenate_videoclips(L)
             # 生成目标视频文件
             final_clip.to_videofile(os.path.join(current_video_path, r'{}.mp4'.format(title)), fps=24, remove_temp=False)
-            print('[视频合并完成]:' + title)
+            print_to_msg_box('[视频合并完成]:' + title)
         else:
             # 视频只有一段则直接打印下载完成
-            print('[视频无需合并]:' + title)
+            print_to_msg_box('[视频无需合并]:' + title)
 
 def do_prepare(inputStart,inputQuality):
     # 清空进度条
@@ -199,10 +188,10 @@ def do_prepare(inputStart,inputQuality):
     pct.set('0.00%')
     root.update()
     # 清空文本栏
-    msgbox.delete('1.0','end')
+    msg_box.delete('1.0', 'end')
     start_time = time.time()
     # 用户输入av号或者视频链接地址
-    print('*' * 30 + 'B站视频下载小助手' + '*' * 30)
+    print_to_msg_box('*' * 30 + 'B站视频下载小助手' + '*' * 30)
     start = inputStart
     if start.isdigit() == True:  # 如果输入的是av号
         # 获取cid的api, 传入aid即可
@@ -223,7 +212,7 @@ def do_prepare(inputStart,inputQuality):
     html = requests.get(start_url, headers=headers).json()
     data = html['data']
     download_path = os.path.join(sys.path[0], 'bilibili_video', re.sub(r'[\\/:*?"<>|\r\n]+', "_", data['title']))
-    print('[视频文件保存位置]:' + download_path)
+    print_to_msg_box('[视频文件保存位置]:' + download_path)
     cid_list = []
     if '?p=' in start:
         # 单独下载分P视频中的一集
@@ -260,7 +249,7 @@ def do_prepare(inputStart,inputQuality):
     combine_video(title_list, download_path)
 
     end_time = time.time()  # 结束时间
-    print('下载总耗时%.2f秒,约%.2f分钟' % (end_time - start_time, int(end_time - start_time) / 60))
+    print_to_msg_box('下载总耗时%.2f秒,约%.2f分钟' % (end_time - start_time, int(end_time - start_time) / 60))
 
     # 如果是windows系统，下载完成后打开下载目录
     if (sys.platform.startswith('win')):
@@ -307,9 +296,9 @@ if __name__ == "__main__":
     inputQual.current(1)
     inputQual.pack()
     confirm = Button(root,text="开始下载",command=lambda:thread_it(do_prepare,inputStart.get(), keyTrans[inputQual.get()] ))
-    msgbox = scrolledtext.ScrolledText(root)
-    msgbox.insert('1.0',"对于单P视频:直接传入B站av号或者视频链接地址\n(eg: 49842011或者https://www.bilibili.com/video/av49842011)\n对于多P视频:\n1.下载全集:直接传入B站av号或者视频链接地址\n(eg: 49842011或者https://www.bilibili.com/video/av49842011)\n2.下载其中一集:传入那一集的视频链接地址\n(eg: https://www.bilibili.com/video/av19516333/?p=2)")
-    msgbox.pack()
+    msg_box = scrolledtext.ScrolledText(root)
+    msg_box.insert('1.0', "对于单P视频:直接传入B站av号或者视频链接地址\n(eg: 49842011或者https://www.bilibili.com/video/av49842011)\n对于多P视频:\n1.下载全集:直接传入B站av号或者视频链接地址\n(eg: 49842011或者https://www.bilibili.com/video/av49842011)\n2.下载其中一集:传入那一集的视频链接地址\n(eg: https://www.bilibili.com/video/av19516333/?p=2)")
+    msg_box.pack()
     download=Canvas(root,width=465,height=23,bg="white")
     # 进度条的设置
     labelDownload=Label(root,text="下载进度")
