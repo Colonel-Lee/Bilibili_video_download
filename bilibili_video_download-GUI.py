@@ -24,6 +24,7 @@ import os, threading
 
 
 from tkinter import *
+from tkinter import scrolledtext
 from tkinter import ttk
 from tkinter import StringVar
 root=Tk()
@@ -307,7 +308,7 @@ if __name__ == "__main__":
     inputQual.current(1)
     inputQual.pack()
     confirm = Button(root,text="开始下载",command=lambda:thread_it(do_prepare,inputStart.get(), keyTrans[inputQual.get()] ))
-    msgbox = Text(root)
+    msgbox = scrolledtext.ScrolledText(root)
     msgbox.insert('1.0',"对于单P视频:直接传入B站av号或者视频链接地址\n(eg: 49842011或者https://www.bilibili.com/video/av49842011)\n对于多P视频:\n1.下载全集:直接传入B站av号或者视频链接地址\n(eg: 49842011或者https://www.bilibili.com/video/av49842011)\n2.下载其中一集:传入那一集的视频链接地址\n(eg: https://www.bilibili.com/video/av19516333/?p=2)")
     msgbox.pack()
     download=Canvas(root,width=465,height=23,bg="white")
