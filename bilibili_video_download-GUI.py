@@ -21,12 +21,13 @@ import urllib.request
 imageio.plugins.ffmpeg.download()
 from moviepy.editor import *
 import os, threading
-
-
 from tkinter import *
 from tkinter import scrolledtext
 from tkinter import ttk
 from tkinter import StringVar
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
+
 root=Tk()
 start_time = time.time()
 
@@ -123,6 +124,7 @@ def down_video(video_list, title, start_url, page, download_path):
     num = 1
     print('[正在下载P{}段视频,请稍等...]:{}'.format(page, title))
     currentVideoPath = os.path.join(download_path, title)  # 当前目录作为下载目录
+    download_failed = False
     for i in video_list:
         opener = urllib.request.build_opener()
         # 请求头
@@ -147,9 +149,10 @@ def down_video(video_list, title, start_url, page, download_path):
         if result is not None:
             error_msg = '[P{}段视频下载失败]:error={}, url={}, filename={}'.format(page, result, i, filename)
             print(error_msg)
-            raise Exception(error_msg)
+            download_failed = True
         num += 1
-    print('[P{}段视频下载完成]:{}'.format(page, title))
+    if not download_failed:
+        print('[P{}段视频下载完成]:{}'.format(page, title))
 
 
 def download_file(url, filename, retry_times=5):
@@ -231,7 +234,8 @@ def do_prepare(inputStart,inputQuality):
         cid_list = data['pages']
     # print(cid_list)
     # 创建线程池
-    threadpool = []
+    threadpool = ThreadPoolExecutor(max_workers=5)
+    download_tasks = []
     title_list = []
     for item in cid_list:
         cid = str(item['cid'])
@@ -245,18 +249,13 @@ def do_prepare(inputStart,inputQuality):
         video_list = get_play_list(start_url, cid, quality)
         start_time = time.time()
         # down_video(video_list, title, start_url, page)
-        # 定义线程
-        th = threading.Thread(target=down_video, args=(video_list, title, start_url, page, download_path))
-        # 将线程加入线程池
-        threadpool.append(th)
+        task = threadpool.submit(down_video, video_list, title, start_url, page, download_path)
+        download_tasks.append(task)
 
-    # 开始线程
-    for th in threadpool:
-        th.start()
-    # 等待所有线程运行完毕
-    for th in threadpool:
-        th.join()
-    
+    for task in as_completed(download_tasks):
+        task.result()
+    threadpool.shutdown()
+
     # 最后合并视频
     combine_video(title_list, download_path)
 
