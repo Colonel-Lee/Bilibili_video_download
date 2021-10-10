@@ -188,10 +188,10 @@ def combine_video(title_list, video_path):
             final_clip = concatenate_videoclips(L)
             # 生成目标视频文件
             final_clip.to_videofile(os.path.join(current_video_path, r'{}.mp4'.format(title)), fps=24, remove_temp=False)
-            print('[视频合并完成]' + title)
+            print('[视频合并完成]:' + title)
         else:
             # 视频只有一段则直接打印下载完成
-            print('[视频合并完成]:' + title)
+            print('[视频无需合并]:' + title)
 
 def do_prepare(inputStart,inputQuality):
     # 清空进度条
